@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Magnet Video Upload</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #000000, #1c1c1c);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.container {
+  background: #111;
+  padding: 30px;
+  border-radius: 12px;
+  width: 350px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0,0,0,0.6);
+}
+
+h2 {
+  margin-bottom: 20px;
+}
+
+input[type="text"],
+input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 6px;
+  border: none;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background: #00ff99;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #00cc77;
+}
+
+#status {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.progress {
+  width: 100%;
+  height: 6px;
+  background: #333;
+  border-radius: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+  display: none;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: #00ff99;
+  transition: width 0.3s;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Upload Your AR Memory</h2>
+
+  <input type="text" id="productId" placeholder="Enter Product ID (e.g. MAG001)">
+  <input type="file" id="videoFile" accept="video/*">
+
+  <button onclick="uploadVideo()">Upload Video</button>
+
+  <div class="progress" id="progressBox">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCuep2fqEqomD8Cct6c-roMxVjMvzCXHF9WsF7xRBlTIFVcn2qQ4WC1PXfVYNqaZFa/exec";
+
+function uploadVideo() {
+  const productId = document.getElementById("productId").value.trim();
+  const file = document.getElementById("videoFile").files[0];
+  const statusDiv = document.getElementById("status");
+  const progressBox = document.getElementById("progressBox");
+  const progressBar = document.getElementById("progressBar");
+
+  if (!productId || !file) {
+    statusDiv.innerHTML = "Please enter Product ID and select a video.";
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    statusDiv.innerHTML = "Video must be under 10MB.";
+    return;
+  }
+
+  statusDiv.innerHTML = "Processing...";
+  progressBox.style.display = "block";
+  progressBar.style.width = "10%";
+
+  const reader = new FileReader();
+
+  reader.onload = async function() {
+    progressBar.style.width = "40%";
+
+    const base64Data = reader.result.split(',')[1];
+
+    try {
+      const response = await fetch(WEB_APP_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          productId: productId,
+          file: base64Data,
+          fileName: file.name
+        })
+      });
+
+      progressBar.style.width = "80%";
+
+      const result = await response.json();
+
+      if (result.status === "success") {
+        progressBar.style.width = "100%";
+        statusDiv.innerHTML =
+          "Upload Successful!<br>" +
+          "Uploads Used: " + result.uploadCount +
+          "<br>Remaining: " + result.remaining;
+      } 
+      else if (result.status === "blocked") {
+        progressBar.style.display = "none";
+        statusDiv.innerHTML =
+          "Upload limit reached (3 lifetime uploads used).<br>" +
+          "Contact support for upgrade.";
+      } 
+      else {
+        statusDiv.innerHTML = "Error: " + result.message;
+      }
+
+    } catch (error) {
+      statusDiv.innerHTML = "Upload failed. Try again.";
+    }
+  };
+
+  reader.readAsDataURL(file);
+}
+</script>
+
+</body>
+</html>
