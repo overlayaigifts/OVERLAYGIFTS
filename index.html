@@ -76,95 +76,159 @@ button:hover {
   background: #00ff99;
   transition: width 0.3s;
 }
+
+.product-box{
+  background:#000;
+  padding:10px;
+  border-radius:6px;
+  margin-bottom:10px;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-  <h2>Upload Your AR Memory</h2>
 
-  <input type="text" id="productId" placeholder="Enter Product ID (e.g. MAG001)">
-  <input type="file" id="videoFile" accept="video/*">
+<h2>Upload Your AR Memory</h2>
 
-  <button onclick="uploadVideo()">Upload Video</button>
+<div class="product-box">
+Product ID: <span id="productLabel">Loading...</span>
+</div>
 
-  <div class="progress" id="progressBox">
-    <div class="progress-bar" id="progressBar"></div>
-  </div>
+<input type="hidden" id="productId">
 
-  <div id="status"></div>
+<input type="file" id="videoFile" accept="video/*">
+
+<button onclick="uploadVideo()">Upload Video</button>
+
+<div class="progress" id="progressBox">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+
+<div id="status"></div>
+
 </div>
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCuep2fqEqomD8Cct6c-roMxVjMvzCXHF9WsF7xRBlTIFVcn2qQ4WC1PXfVYNqaZFa/exec";
+
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx-k1MKAoOYopH7HSV-uk4fj7_VcjKFS4nlspKlYLi2VP-BIMJzisLL3NCJt4JgioogaQ/exec";
+
+
+// AUTO GET PRODUCT ID FROM URL
+window.onload = function () {
+
+const urlParams = new URLSearchParams(window.location.search);
+const productId = urlParams.get("product");
+
+if(productId){
+
+document.getElementById("productId").value = productId;
+document.getElementById("productLabel").innerText = productId;
+
+}else{
+
+document.getElementById("status").innerHTML =
+"Invalid link. Product ID missing.";
+
+}
+
+};
+
 
 function uploadVideo() {
-  const productId = document.getElementById("productId").value.trim();
-  const file = document.getElementById("videoFile").files[0];
-  const statusDiv = document.getElementById("status");
-  const progressBox = document.getElementById("progressBox");
-  const progressBar = document.getElementById("progressBar");
 
-  if (!productId || !file) {
-    statusDiv.innerHTML = "Please enter Product ID and select a video.";
-    return;
-  }
+const productId = document.getElementById("productId").value;
+const file = document.getElementById("videoFile").files[0];
+const statusDiv = document.getElementById("status");
+const progressBox = document.getElementById("progressBox");
+const progressBar = document.getElementById("progressBar");
 
-  if (file.size > 10 * 1024 * 1024) {
-    statusDiv.innerHTML = "Video must be under 10MB.";
-    return;
-  }
+if (!productId || !file) {
 
-  statusDiv.innerHTML = "Processing...";
-  progressBox.style.display = "block";
-  progressBar.style.width = "10%";
+statusDiv.innerHTML = "Please select a video.";
+return;
 
-  const reader = new FileReader();
-
-  reader.onload = async function() {
-    progressBar.style.width = "40%";
-
-    const base64Data = reader.result.split(',')[1];
-
-    try {
-      const response = await fetch(WEB_APP_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          productId: productId,
-          file: base64Data,
-          fileName: file.name
-        })
-      });
-
-      progressBar.style.width = "80%";
-
-      const result = await response.json();
-
-      if (result.status === "success") {
-        progressBar.style.width = "100%";
-        statusDiv.innerHTML =
-          "Upload Successful!<br>" +
-          "Uploads Used: " + result.uploadCount +
-          "<br>Remaining: " + result.remaining;
-      } 
-      else if (result.status === "blocked") {
-        progressBar.style.display = "none";
-        statusDiv.innerHTML =
-          "Upload limit reached (3 lifetime uploads used).<br>" +
-          "Contact support for upgrade.";
-      } 
-      else {
-        statusDiv.innerHTML = "Error: " + result.message;
-      }
-
-    } catch (error) {
-      statusDiv.innerHTML = "Upload failed. Try again.";
-    }
-  };
-
-  reader.readAsDataURL(file);
 }
+
+if (file.size > 10 * 1024 * 1024) {
+
+statusDiv.innerHTML = "Video must be under 10MB.";
+return;
+
+}
+
+statusDiv.innerHTML = "Processing...";
+progressBox.style.display = "block";
+progressBar.style.width = "10%";
+
+const reader = new FileReader();
+
+reader.onload = async function() {
+
+progressBar.style.width = "40%";
+
+const base64Data = reader.result.split(',')[1];
+
+try {
+
+const response = await fetch(WEB_APP_URL, {
+
+method: "POST",
+body: JSON.stringify({
+
+productId: productId,
+file: base64Data,
+fileName: file.name
+
+})
+
+});
+
+progressBar.style.width = "80%";
+
+const result = await response.json();
+
+if (result.status === "success") {
+
+progressBar.style.width = "100%";
+
+statusDiv.innerHTML =
+"Upload Successful!<br>" +
+"Uploads Used: " + result.uploadCount +
+"<br>Remaining: " + result.remaining;
+
+}
+
+else if (result.status === "blocked") {
+
+progressBar.style.display = "none";
+
+statusDiv.innerHTML =
+"Upload limit reached (3 lifetime uploads used).<br>" +
+"Contact support for upgrade.";
+
+}
+
+else {
+
+statusDiv.innerHTML = "Error: " + result.message;
+
+}
+
+} catch (error) {
+
+statusDiv.innerHTML = "Upload failed. Try again.";
+
+}
+
+};
+
+reader.readAsDataURL(file);
+
+}
+
 </script>
 
 </body>
